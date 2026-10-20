@@ -49,6 +49,32 @@ Cannonfall is the result: a browser-based naval combat game where two players de
 | Backend hosting | Render |
 | Version control | Git and GitHub |
 
+## Run Locally
+
+Start the backend and frontend in separate terminals. The frontend's Vite
+development server proxies API and WebSocket requests to the local backend.
+
+In the first terminal:
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+In the second terminal:
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+Open the local URL printed by Vite. For a production build, run
+`npm run build` from `frontend/`; `npm run lint` runs the frontend linter.
+
 ## How It Works
 
 1. A player creates a room and receives a room code.
@@ -59,7 +85,9 @@ Cannonfall is the result: a browser-based naval combat game where two players de
 6. The game tracks attack results and determines the winner.
 7. Players can request a rematch and return to fleet placement.
 
-HTTP requests handle room operations and game actions, while WebSockets support real-time communication between connected players.
+HTTP requests handle room operations and game actions. The backend also exposes
+a WebSocket endpoint for room events; the current interface refreshes lobby and
+battle state through periodic HTTP polling.
 
 ## Deployment
 

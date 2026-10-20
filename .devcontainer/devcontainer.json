@@ -17,5 +17,5 @@
       "onAutoForward": "notify"
     }
   },
-  "postCreateCommand": "cd frontend && npm install || true"
+  "postCreateCommand": "cd frontend && npm ci"
 }

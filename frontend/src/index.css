@@ -1793,7 +1793,7 @@ button:disabled {
 }
 @font-face {
   font-family: "Operation Napalm";
-  src: url("./assets/fonts/OperationNapalm.ttf") format("truetype");
+  src: url("./assets/fonts/OperationNapalm-Regular.ttf") format("truetype");
   font-weight: 400 950;
   font-style: normal;
   font-display: swap;

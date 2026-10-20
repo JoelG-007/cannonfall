@@ -2,11 +2,11 @@
 
 **A multiplayer naval artillery game built for the college lab.**
 
-Cannonfall started with a simple problem: I wanted to play games during breaks in my college lab, but the lab's ad blocker kept getting in the way of almost everything. Instead of looking for another game to play, I decided to build one myself.
+Cannonfall started with a simple problem: I wanted to play games during breaks in my college lab but the lab's ad blocker kept getting in the way of almost everything. Instead of looking for another game to play, I decided to build one myself.
 
-The idea was to create a multiplayer game that could run directly in a browser, without requiring installations or a dedicated gaming setup. What began as a workaround turned into a project involving real-time communication, game state management, backend development, and multiplayer synchronization.
+The idea was to create a multiplayer game that could run directly in a browser, without requiring installations or a dedicated gaming setup. What began as a workaround turned into a project involving real-time communication, game state management, backend development and multiplayer synchronization.
 
-Cannonfall is the result: a browser-based naval combat game where two players deploy their fleets, take turns firing at each other, and try to sink the opponent's ships.
+Cannonfall is the result: a browser-based naval combat game where two players deploy their fleets, take turns firing at each other and try to sink the opponent's ships.
 
 **Play:** https://cannonfall.netlify.app
 
@@ -45,68 +45,6 @@ Cannonfall is the result: a browser-based naval combat game where two players de
 
 HTTP requests handle room operations and game actions, while WebSockets support real-time communication between connected players.
 
-## Running Locally
-
-### Prerequisites
-
-- Node.js and npm
-- Python 3.10 or later
-- Git
-
-### Clone the repository
-
-```bash
-git clone https://github.com/JoelG-007/cannonfall.git
-cd cannonfall
-```
-
-### Start the backend
-
-```bash
-cd backend
-python -m venv venv
-```
-
-Activate the virtual environment.
-
-**Windows:**
-
-```bash
-venv\Scripts\activate
-```
-
-**macOS / Linux:**
-
-```bash
-source venv/bin/activate
-```
-
-Install dependencies and start the server:
-
-```bash
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-```
-
-The backend should be available at `http://localhost:8000`.
-
-- Health check: `http://localhost:8000/health`
-- API documentation: `http://localhost:8000/docs`
-
-### Start the frontend
-
-Open another terminal:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open the local URL printed by Vite, usually `http://localhost:5173`.
-
-For production, configure `VITE_API_URL` to point to the backend.
-
 ## Deployment
 
 Cannonfall uses separate hosting services for the frontend and backend.
@@ -131,10 +69,11 @@ The backend must allow requests from the deployed frontend origin. WebSocket con
 - Handling room creation, player readiness, turn validation, and rematches.
 - Debugging CORS, environment variables, and deployment issues.
 - Deploying a full-stack application using separate frontend and backend services.
+- Learning firsthand why frontend and backend developers need separate teams.
 
 ## Future Improvements
 
-Potential improvements include spectator support, reconnection handling, game statistics, and additional naval combat mechanics.
+Potential improvements include spectator support, reconnection handling, game statistics and additional naval combat mechanics.
 
 ## Author
 

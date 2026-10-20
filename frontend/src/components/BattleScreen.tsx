@@ -800,7 +800,6 @@ export default function BattleScreen({
         </span>
       </footer>
 
-      {/* Centered full-screen victory / defeat overlay */}
       {finished && (
         <div
           className={`battle-outcome-overlay ${

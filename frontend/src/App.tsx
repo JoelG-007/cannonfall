@@ -98,7 +98,6 @@ function App() {
     };
   }, []);
 
-  // Retrieve the latest room information.
   const refreshRoom = useCallback(async (id: string) => {
     const response = await fetch(
       `${API_URL}/rooms/${encodeURIComponent(id)}`,
@@ -312,7 +311,6 @@ function App() {
     setFleetReady(false);
   }
 
-  // Submit the player's fleet to the backend.
   async function handleFleetReady(
     ships: PlacedShip[]
   ): Promise<void> {
@@ -361,7 +359,6 @@ function App() {
     setRoomCode("");
   }
 
-  // Show the battle screen when both fleets have been submitted.
   if (room?.status === "playing" && playerId) {
     return (
       <BattleScreen
@@ -378,7 +375,6 @@ function App() {
     );
   }
 
-  // Ship placement screen.
   if (placingShips && room) {
     const opponent = room.players.find(
       (player) => player.id !== playerId
@@ -394,7 +390,6 @@ function App() {
     );
   }
 
-  // Main lobby and room interface.
   return (
     <main className="app">
       <header className="topbar">

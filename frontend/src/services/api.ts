@@ -20,13 +20,3 @@ export function getWebSocketUrl(): string {
 
   return `${protocol}//${apiUrl.host}`;
 }
-
-export async function checkServer(): Promise<boolean> {
-  try {
-    const response = await fetch(`${API_URL}/health`);
-    return response.ok;
-  } catch (error) {
-    console.error("Backend connection error:", error);
-    return false;
-  }
-}

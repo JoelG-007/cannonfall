@@ -1,6 +1,22 @@
 # CANNONFALL
 
-**A multiplayer naval artillery game built for the college lab.**
+<p align="center">
+  <strong>A multiplayer naval artillery game built for the college lab.</strong>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB" alt="React" />
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/WebSockets-Real--time-6C5CE7?style=flat" alt="WebSockets" />
+  <img src="https://img.shields.io/badge/Status-Live-2EA44F?style=flat" alt="Live" />
+</p>
+
+<p align="center">
+  <a href="https://cannonfall.netlify.app">
+    <img src="https://img.shields.io/badge/PLAY%20LIVE-Enter%20the%20Battle-84CC16?style=for-the-badge&logoColor=white" alt="Play Cannonfall Live" />
+  </a>
+</p>
 
 Cannonfall started with a simple problem: I wanted to play games during breaks in my college lab but the lab's ad blocker kept getting in the way of almost everything. Instead of looking for another game to play, I decided to build one myself.
 

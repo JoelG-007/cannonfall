@@ -6,8 +6,6 @@ from app.routes.rooms import router as rooms_router
 from app.ws.handlers import router as websocket_router
 
 app = FastAPI(title="Cannonfall API")
-*
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,7 +19,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 app.include_router(rooms_router)
 app.include_router(websocket_router)

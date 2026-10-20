@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import ShipPlacement from "./components/ShipPlacement";
 import BattleScreen from "./components/BattleScreen";
+import anchorEmblem from "./assets/anchor-emblem.png";
 
 type Player = {
   id: string;
@@ -74,24 +75,25 @@ function App() {
   const [placingShips, setPlacingShips] = useState(false);
   const [fleetReady, setFleetReady] = useState(false);
 
-  // Check backend connectivity.
+  // Poll backend health so the indicator reflects connected/disconnected state.
   useEffect(() => {
     let cancelled = false;
 
-    fetch("/health", { cache: "no-store" })
-      .then((response) => {
-        if (!cancelled) {
-          setBackendConnected(response.ok);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setBackendConnected(false);
-        }
-      });
+    const checkBackend = async () => {
+      try {
+        const response = await fetch("/health", { cache: "no-store" });
+        if (!cancelled) setBackendConnected(response.ok);
+      } catch {
+        if (!cancelled) setBackendConnected(false);
+      }
+    };
+
+    void checkBackend();
+    const timer = window.setInterval(() => void checkBackend(), 3000);
 
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
     };
   }, []);
 
@@ -258,11 +260,53 @@ function App() {
     }
   }
 
-  function leaveRoom() {
+  async function leaveRoom() {
+    if (!room || !playerId) {
+      setRoom(null);
+      setPlayerId("");
+      setRoomCode("");
+      setError("");
+      setPlacingShips(false);
+      setFleetReady(false);
+      return;
+    }
+
+    setError("");
+
+    try {
+      const response = await fetch(
+        `/rooms/${encodeURIComponent(room.id)}/leave`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ player_id: playerId }),
+        }
+      );
+
+      const data = (await response.json().catch(() => ({}))) as {
+        detail?: string;
+        message?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail ?? data.message ?? "Could not leave the room."
+        );
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not leave the room. Please try again."
+      );
+      return;
+    }
+
     setRoom(null);
     setPlayerId("");
     setRoomCode("");
-    setError("");
     setPlacingShips(false);
     setFleetReady(false);
   }
@@ -324,6 +368,11 @@ function App() {
         playerId={playerId}
         playerName={playerName}
         onExit={handleBattleExit}
+        onRematchReady={() => {
+          setFleetReady(false);
+          setPlacingShips(true);
+          void refreshRoom(room.id);
+        }}
       />
     );
   }
@@ -349,15 +398,22 @@ function App() {
     <main className="app">
       <header className="topbar">
         <div className="brand">
-          <span className="brand-icon">C</span>
-          <span>CANNONFALL</span>
+          <span className="brand-icon">
+            <img src={anchorEmblem} alt="Cannonfall engraved anchor emblem" />
+          </span>
+          <span className="brand-wordmark">CANNONFALL</span>
         </div>
 
-        <div className="server-status">
-          <span
-            className={`status-dot ${backendConnected ? "online" : ""}`}
-          />
-          {backendConnected ? "SERVER ONLINE" : "CONNECTING..."}
+        <div
+          className={`server-status ${backendConnected ? "is-connected" : "is-disconnected"}`}
+          role="status"
+          aria-live="polite"
+        >
+          <span className={`status-dot ${backendConnected ? "online" : "offline"}`} />
+          <span className="server-status-copy">
+            <strong>{backendConnected ? "SERVER CONNECTED" : "SERVER DISCONNECTED"}</strong>
+            <small>{backendConnected ? "ONLINE · READY" : "OFFLINE · RETRYING"}</small>
+          </span>
         </div>
       </header>
 
@@ -544,9 +600,16 @@ function App() {
         </section>
       )}
 
-      <footer className="page-footer">
-        <span>CANNONFALL</span>
-        <span>TACTICS · PRECISION · VICTORY</span>
+      <footer className="page-footer creator-footer">
+        <div className="creator-credit">
+          <span className="credit-rule" />
+          <p>DEVELOPED BY <strong>JOEL GUEDES</strong></p>
+          <span className="credit-rule" />
+        </div>
+        <p className="creator-quote">
+          Whatever I've done, I did it for love, I did it for fun, Couldn't get enough...
+        </p>
+        <span className="creator-heart" aria-hidden="true">♥</span>
       </footer>
     </main>
   );

@@ -1421,3 +1421,395 @@ button:disabled {
     transition-duration: 0.01ms !important;
   }
 }
+
+@font-face {
+  font-family: "Gridtile";
+  src: url("./assets/fonts/Gridtile.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.battle-outcome-stats span {
+  font-family: "Gridtile", monospace;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.battle-outcome-stats strong {
+  font-family: "Gridtile", monospace;
+  font-size: 1.15rem;
+  font-weight: 400;
+  color: var(--lime);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.brand-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  color: var(--lime, #a8ed3d);
+  flex: 0 0 auto;
+}
+
+.brand-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 0.55rem rgb(168 237 61 / 18%));
+}
+
+.brand-wordmark {
+  font-weight: 900;
+  letter-spacing: 0.09em;
+}
+
+.server-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid var(--border, #29475b);
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  background: rgb(5 17 28 / 70%);
+}
+
+.server-status.is-connected {
+  border-color: rgb(168 237 61 / 60%);
+}
+
+.server-status.is-disconnected {
+  border-color: rgb(255 82 105 / 65%);
+}
+
+.server-status-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  line-height: 1.2;
+}
+
+.server-status-copy strong {
+  font-size: 0.72rem;
+  letter-spacing: 0.09em;
+}
+
+.server-status-copy small {
+  font-size: 0.62rem;
+  letter-spacing: 0.11em;
+  color: var(--muted, #8ca8bd);
+}
+
+.status-dot.offline {
+  background: #ff5269;
+  box-shadow: 0 0 0.65rem rgb(255 82 105 / 55%);
+}
+
+.status-dot.online {
+  background: #a8ed3d;
+  box-shadow: 0 0 0.65rem rgb(168 237 61 / 55%);
+}
+
+.creator-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  text-align: center;
+  margin-top: 2.25rem;
+  padding-bottom: 1.5rem;
+}
+
+.creator-credit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  width: min(100%, 34rem);
+}
+
+.creator-credit p {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  white-space: nowrap;
+}
+
+.creator-credit strong {
+  color: var(--lime, #a8ed3d);
+}
+
+.credit-rule {
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, transparent, var(--lime, #a8ed3d));
+  opacity: 0.75;
+}
+
+.credit-rule:last-child {
+  background: linear-gradient(90deg, var(--lime, #a8ed3d), transparent);
+}
+
+.creator-quote {
+  margin: 0;
+  color: var(--muted, #8ca8bd);
+  font-size: 0.65rem;
+  letter-spacing: 0.13em;
+  line-height: 1.7;
+  text-transform: uppercase;
+}
+
+.creator-heart {
+  color: var(--lime, #a8ed3d);
+  font-size: 1.15rem;
+  line-height: 1;
+  text-shadow: 0 0 0.8rem rgb(168 237 61 / 40%);
+}
+
+@media (max-width: 560px) {
+  .brand-wordmark {
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+  }
+
+  .brand-icon {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .server-status {
+    gap: 0.4rem;
+    padding: 0.45rem 0.5rem;
+  }
+
+  .server-status-copy strong {
+    font-size: 0.58rem;
+  }
+
+  .server-status-copy small {
+    font-size: 0.52rem;
+  }
+
+  .creator-credit p {
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+  }
+
+  .creator-quote {
+    font-size: 0.57rem;
+    letter-spacing: 0.07em;
+    padding-inline: 0.75rem;
+  }
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.brand-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  color: var(--lime, #a8ed3d);
+  flex: 0 0 auto;
+}
+
+.brand-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 0.55rem rgb(168 237 61 / 18%));
+}
+
+.brand-wordmark {
+  font-weight: 900;
+  letter-spacing: 0.09em;
+}
+
+.server-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid var(--border, #29475b);
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  background: rgb(5 17 28 / 70%);
+}
+
+.server-status.is-connected {
+  border-color: rgb(168 237 61 / 60%);
+}
+
+.server-status.is-disconnected {
+  border-color: rgb(255 82 105 / 65%);
+}
+
+.server-status-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  line-height: 1.2;
+}
+
+.server-status-copy strong {
+  font-size: 0.72rem;
+  letter-spacing: 0.09em;
+}
+
+.server-status-copy small {
+  font-size: 0.62rem;
+  letter-spacing: 0.11em;
+  color: var(--muted, #8ca8bd);
+}
+
+.status-dot.offline {
+  background: #ff5269;
+  box-shadow: 0 0 0.65rem rgb(255 82 105 / 55%);
+}
+
+.status-dot.online {
+  background: #a8ed3d;
+  box-shadow: 0 0 0.65rem rgb(168 237 61 / 55%);
+}
+
+.creator-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  text-align: center;
+  margin-top: 2.25rem;
+  padding-bottom: 1.5rem;
+}
+
+.creator-credit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  width: min(100%, 34rem);
+}
+
+.creator-credit p {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  white-space: nowrap;
+}
+
+.creator-credit strong {
+  color: var(--lime, #a8ed3d);
+}
+
+.credit-rule {
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, transparent, var(--lime, #a8ed3d));
+  opacity: 0.75;
+}
+
+.credit-rule:last-child {
+  background: linear-gradient(90deg, var(--lime, #a8ed3d), transparent);
+}
+
+.creator-quote {
+  margin: 0;
+  color: var(--muted, #8ca8bd);
+  font-size: 0.65rem;
+  letter-spacing: 0.13em;
+  line-height: 1.7;
+  text-transform: uppercase;
+}
+
+.creator-heart {
+  color: var(--lime, #a8ed3d);
+  font-size: 1.15rem;
+  line-height: 1;
+  text-shadow: 0 0 0.8rem rgb(168 237 61 / 40%);
+}
+
+@media (max-width: 560px) {
+  .brand-wordmark {
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+  }
+
+  .brand-icon {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .server-status {
+    gap: 0.4rem;
+    padding: 0.45rem 0.5rem;
+  }
+
+  .server-status-copy strong {
+    font-size: 0.58rem;
+  }
+
+  .server-status-copy small {
+    font-size: 0.52rem;
+  }
+
+  .creator-credit p {
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+  }
+
+  .creator-quote {
+    font-size: 0.57rem;
+    letter-spacing: 0.07em;
+    padding-inline: 0.75rem;
+  }
+}
+
+.brand-icon {
+  width: 2.7rem;
+  height: 2.7rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.brand-icon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 0.5rem rgb(168 237 61 / 15%));
+}
+@font-face {
+  font-family: "Operation Napalm";
+  src: url("./assets/fonts/OperationNapalm.ttf") format("truetype");
+  font-weight: 400 950;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Use the display font for the large VICTORY / DEFEAT heading only. */
+.battle-outcome-card h2 {
+  font-family: "Operation Napalm", Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+/* Keep the rest of the report typography as-is. */
+.battle-outcome-stats span,
+.battle-outcome-stats strong {
+  font-family: "Gridtile", monospace;
+}

@@ -1,4 +1,3 @@
-
 import random
 import string
 
@@ -10,8 +9,6 @@ from app.models.room import Player, Room
 router = APIRouter(prefix="/rooms", tags=["rooms"])
 
 rooms: dict[str, Room] = {}
-
-# In-memory combat state, keyed by room ID.
 game_states: dict[str, dict] = {}
 
 
@@ -41,6 +38,18 @@ class FireRequest(BaseModel):
     cell: int = Field(ge=0, lt=100)
 
 
+class RematchRequest(BaseModel):
+    player_id: str
+
+
+class ForfeitRequest(BaseModel):
+    player_id: str
+
+
+class LeaveRoomRequest(BaseModel):
+    player_id: str
+
+
 SHIP_LENGTHS = {
     "carrier": 5,
     "battleship": 4,
@@ -55,7 +64,6 @@ def generate_room_id() -> str:
 
     while True:
         room_id = "".join(random.choices(characters, k=6))
-
         if room_id not in rooms:
             return room_id
 
@@ -179,11 +187,16 @@ def validate_fleet(ships: list[FleetShip]) -> None:
 
 
 def initialize_game(room: Room) -> None:
-    """Initialize combat when both players have submitted fleets."""
+    """Initialize a fresh match for the two players."""
     game_states[room.id] = {
         "current_turn": room.players[0].id,
         "winner": None,
         "attacks": [],
+        "rematch_votes": [],
+        "finish_reason": None,
+        "forfeited_by": None,
+        "forfeiter_name": None,
+        "departed_player": None,
     }
 
 
@@ -215,8 +228,12 @@ def get_incoming_shots(state: dict, player_id: str) -> list[dict]:
     ]
 
 
-def get_sunk_ships(player: Player, state: dict, attacker_id: str) -> list[str]:
-    """Return names of this player's ships sunk by the specified attacker."""
+def get_sunk_ships(
+    player: Player,
+    state: dict,
+    attacker_id: str,
+) -> list[str]:
+    """Return ship names sunk by the specified attacker."""
     attacker_shots = {
         attack["cell"]
         for attack in state["attacks"]
@@ -236,17 +253,14 @@ def get_sunk_ships(player: Player, state: dict, attacker_id: str) -> list[str]:
 
 @router.post("")
 async def create_room(request: CreateRoomRequest):
+    player_name = request.player_name.strip()
+
+    if not player_name:
+        raise HTTPException(status_code=400, detail="Enter your name.")
+
     room_id = generate_room_id()
-
-    player = Player(
-        id="player-1",
-        name=request.player_name.strip(),
-    )
-
-    room = Room(
-        id=room_id,
-        players=[player],
-    )
+    player = Player(id="player-1", name=player_name)
+    room = Room(id=room_id, players=[player])
 
     rooms[room_id] = room
 
@@ -262,10 +276,7 @@ async def join_room(room_id: str, request: JoinRoomRequest):
     room = find_room(room_id)
 
     if len(room.players) >= 2:
-        raise HTTPException(
-            status_code=409,
-            detail="Room is full",
-        )
+        raise HTTPException(status_code=409, detail="Room is full")
 
     if room.status in ("playing", "finished"):
         raise HTTPException(
@@ -273,13 +284,24 @@ async def join_room(room_id: str, request: JoinRoomRequest):
             detail="This game has already started.",
         )
 
-    player = Player(
-        id="player-2",
-        name=request.player_name.strip(),
-    )
+    player_name = request.player_name.strip()
 
+    if not player_name:
+        raise HTTPException(status_code=400, detail="Enter your name.")
+
+    used_ids = {captain.id for captain in room.players}
+    available_ids = ["player-1", "player-2"]
+    player_id = next(pid for pid in available_ids if pid not in used_ids)
+    player = Player(id=player_id, name=player_name)
     room.players.append(player)
+
+    # A replacement player joining a waiting room starts a fresh deployment.
+    for captain in room.players:
+        captain.fleet = []
+        captain.ready = False
     room.status = "ready"
+    if len(room.players) == 2:
+        initialize_game(room)
 
     return {
         "room_id": room.id,
@@ -289,10 +311,7 @@ async def join_room(room_id: str, request: JoinRoomRequest):
 
 
 @router.post("/{room_id}/fleet")
-async def submit_fleet(
-    room_id: str,
-    request: SubmitFleetRequest,
-):
+async def submit_fleet(room_id: str, request: SubmitFleetRequest):
     room = find_room(room_id)
 
     if len(room.players) != 2:
@@ -308,17 +327,16 @@ async def submit_fleet(
         )
 
     player = find_player(room, request.player_id)
-
     validate_fleet(request.ships)
 
-    # Support both Pydantic v1 and v2.
+    # Support Pydantic v1 and v2.
     player.fleet = [
         ship.model_dump() if hasattr(ship, "model_dump") else ship.dict()
         for ship in request.ships
     ]
     player.ready = True
 
-    if all(p.ready for p in room.players):
+    if all(captain.ready for captain in room.players):
         room.status = "playing"
         initialize_game(room)
 
@@ -327,11 +345,13 @@ async def submit_fleet(
         "player_id": player.id,
         "ready": player.ready,
         "opponent_ready": all(
-            p.ready for p in room.players if p.id != player.id
+            captain.ready
+            for captain in room.players
+            if captain.id != player.id
         ),
         "status": room.status,
         "message": (
-            "Both fleets are ready. Battle can begin!"
+            "Battle can begin!"
             if room.status == "playing"
             else "Fleet saved. Waiting for your opponent."
         ),
@@ -346,25 +366,42 @@ async def get_game(room_id: str, player_id: str):
     state = get_game_state(room)
 
     opponent = next(
-        p for p in room.players if p.id != player.id
+        (captain for captain in room.players if captain.id != player.id),
+        None,
     )
+    if opponent is None:
+        departed = state.get("departed_player")
+        if departed is not None:
+            opponent = Player(
+                id=departed["id"],
+                name=departed["name"],
+                fleet=departed.get("fleet", []),
+                ready=departed.get("ready", False),
+            )
+    if opponent is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Your opponent is no longer in this room.",
+        )
 
     own_shots = get_player_shots(state, player.id)
     incoming_shots = get_incoming_shots(state, player.id)
 
-    # Only expose the player's own fleet, never the opponent's fleet.
     own_fleet = [
         {
             **ship,
             "hits": sorted(
                 set(ship["cells"]).intersection(
-                    attack["cell"] for attack in incoming_shots
+                    attack["cell"]
+                    for attack in incoming_shots
                     if attack["result"] == "hit"
                 )
             ),
         }
         for ship in player.fleet
     ]
+
+    votes = state.get("rematch_votes", [])
 
     return {
         "room_id": room.id,
@@ -378,6 +415,12 @@ async def get_game(room_id: str, player_id: str):
         "current_turn": state["current_turn"],
         "your_turn": state["current_turn"] == player.id,
         "winner": state["winner"],
+        "finish_reason": state.get("finish_reason"),
+        "forfeited_by": state.get("forfeited_by"),
+        "forfeiter_name": state.get("forfeiter_name"),
+        "opponent_left": not any(
+            captain.id == opponent.id for captain in room.players
+        ),
         "your_fleet": own_fleet,
         "your_shots": [
             {
@@ -401,6 +444,8 @@ async def get_game(room_id: str, player_id: str):
             opponent, state, player.id
         ),
         "shots_taken": len(own_shots),
+        "rematch_requested": player.id in votes,
+        "opponent_rematch_requested": opponent.id in votes,
     }
 
 
@@ -424,7 +469,7 @@ async def fire_at_cell(room_id: str, request: FireRequest):
         )
 
     opponent = next(
-        p for p in room.players if p.id != player.id
+        captain for captain in room.players if captain.id != player.id
     )
 
     previous_shots = get_player_shots(state, player.id)
@@ -456,9 +501,7 @@ async def fire_at_cell(room_id: str, request: FireRequest):
 
     state["attacks"].append(attack)
 
-    sunk_ships = get_sunk_ships(
-        opponent, state, player.id
-    )
+    sunk_ships = get_sunk_ships(opponent, state, player.id)
 
     if hit_ship and set(hit_ship["cells"]).issubset(
         {
@@ -471,10 +514,10 @@ async def fire_at_cell(room_id: str, request: FireRequest):
 
     if len(sunk_ships) == len(SHIP_LENGTHS):
         state["winner"] = player.id
+        state["finish_reason"] = "fleet_destroyed"
         room.status = "finished"
         message = "Victory! You sank the entire enemy fleet."
     else:
-        # Standard Battleship rules: each shot uses up the player's turn.
         state["current_turn"] = opponent.id
 
         if attack["sunk_ship"]:
@@ -495,6 +538,149 @@ async def fire_at_cell(room_id: str, request: FireRequest):
         "winner": state["winner"],
         "status": room.status,
         "message": message,
+    }
+
+
+@router.post("/{room_id}/forfeit")
+async def forfeit_battle(room_id: str, request: ForfeitRequest):
+    """Finish the active battle without removing either player from the room."""
+    room = find_room(room_id)
+    player = find_player(room, request.player_id)
+    state = get_game_state(room)
+
+    if room.status != "playing" or state.get("winner") is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="This battle is no longer active.",
+        )
+
+    opponent = next(
+        captain for captain in room.players if captain.id != player.id
+    )
+
+    state["winner"] = opponent.id
+    state["finish_reason"] = "forfeit"
+    state["forfeited_by"] = player.id
+    state["forfeiter_name"] = player.name
+    room.status = "finished"
+
+    return {
+        "room_id": room.id,
+        "status": room.status,
+        "winner": opponent.id,
+        "finish_reason": "forfeit",
+        "forfeited_by": player.id,
+        "forfeiter_name": player.name,
+        "message": f"{player.name} forfeited. {opponent.name} wins!",
+    }
+
+
+@router.post("/{room_id}/leave")
+async def leave_room(room_id: str, request: LeaveRoomRequest):
+    """Remove a player only when they explicitly choose to leave the room."""
+    room = find_room(room_id)
+    player = find_player(room, request.player_id)
+
+    if room.status == "playing":
+        raise HTTPException(
+            status_code=409,
+            detail="Forfeit the active battle before leaving the room.",
+        )
+
+    state = game_states.get(room.id)
+    opponent = next(
+        (captain for captain in room.players if captain.id != player.id),
+        None,
+    )
+
+    if state is not None:
+        state["departed_player"] = {
+            "id": player.id,
+            "name": player.name,
+            "fleet": list(player.fleet),
+            "ready": player.ready,
+        }
+        # A player who leaves cannot retain a rematch vote.
+        state["rematch_votes"] = [
+            vote for vote in state.get("rematch_votes", [])
+            if vote != player.id
+        ]
+
+    room.players.remove(player)
+
+    if opponent is None:
+        rooms.pop(room.id, None)
+        game_states.pop(room.id, None)
+        return {"room_id": room.id, "status": "closed", "message": "Room closed."}
+
+    # Keep the remaining player's finished screen visible, but allow a new
+    # player to join and start a fresh deployment in this room.
+    room.status = "waiting"
+
+    return {
+        "room_id": room.id,
+        "status": room.status,
+        "message": f"{player.name} left the room.",
+    }
+
+
+
+@router.post("/{room_id}/rematch")
+async def request_rematch(room_id: str, request: RematchRequest):
+    """Record a rematch vote and reset the match after both players agree."""
+    room = find_room(room_id)
+    player = find_player(room, request.player_id)
+
+    if room.status != "finished":
+        raise HTTPException(
+            status_code=409,
+            detail="A rematch can only be requested after the battle ends.",
+        )
+
+    if len(room.players) != 2:
+        raise HTTPException(
+            status_code=409,
+            detail="Your opponent left the room. Wait for another player to join.",
+        )
+
+    state = get_game_state(room)
+
+    if state["winner"] is None:
+        raise HTTPException(
+            status_code=409,
+            detail="The current battle has not finished.",
+        )
+
+    # Record this player's rematch vote.
+    votes = state.setdefault("rematch_votes", [])
+    if player.id not in votes:
+        votes.append(player.id)
+
+    # Wait until both players have accepted.
+    all_agreed = all(captain.id in votes for captain in room.players)
+    if not all_agreed:
+        return {
+            "room_id": room.id,
+            "status": room.status,
+            "accepted": True,
+            "rematch_started": False,
+            "message": "Rematch requested. Waiting for the other captain.",
+        }
+
+    # Both players agreed: clear old fleets and require new ship placement.
+    for captain in room.players:
+        captain.fleet = []
+        captain.ready = False
+
+    room.status = "ready"
+    initialize_game(room)
+
+    return {
+        "room_id": room.id,
+        "status": room.status,
+        "accepted": True,
+        "rematch_started": False,
+        "message": "Both captains agreed. Deploy your fleets again!",
     }
 
 

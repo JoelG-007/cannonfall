@@ -1,5 +1,4 @@
-
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 
 type Ship = {
   id?: string;
@@ -33,12 +32,18 @@ type GameState = {
   current_turn?: string;
   your_turn?: boolean;
   winner?: string | null;
+  finish_reason?: string | null;
+  forfeited_by?: string | null;
+  forfeiter_name?: string | null;
   your_fleet?: Ship[];
   your_shots?: Shot[];
   incoming_shots?: Shot[];
   your_sunk_ships?: string[];
   opponent_sunk_ships?: string[];
   shots_taken?: number;
+  rematch_requested?: boolean;
+  opponent_rematch_requested?: boolean;
+  opponent_left?: boolean;
 };
 
 type FireResponse = {
@@ -55,6 +60,7 @@ type Props = {
   playerId: string;
   playerName?: string;
   onExit?: () => void;
+  onRematchReady?: () => void;
 };
 
 function normalizeShots(value: unknown): Shot[] {
@@ -126,6 +132,7 @@ export default function BattleScreen({
   playerId,
   playerName,
   onExit,
+  onRematchReady,
 }: Props) {
   const [game, setGame] = useState<GameState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -133,6 +140,8 @@ export default function BattleScreen({
   const [selectedCell, setSelectedCell] = useState<number | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [requestingRematch, setRequestingRematch] = useState(false);
+  const rematchTransitionHandled = useRef(false);
 
   const loadGame = useCallback(async () => {
     try {
@@ -214,6 +223,14 @@ export default function BattleScreen({
       window.clearInterval(interval);
     };
   }, [roomId, playerId]);
+
+  // Both players are moved to ship placement when the server resets the room.
+  useEffect(() => {
+    if (game?.status === "ready" && onRematchReady && !rematchTransitionHandled.current) {
+      rematchTransitionHandled.current = true;
+      onRematchReady();
+    }
+  }, [game?.status, onRematchReady]);
 
   const ownShips = normalizeShips(game?.your_fleet);
   const incomingShots = normalizeShots(game?.incoming_shots);
@@ -323,6 +340,100 @@ export default function BattleScreen({
       await loadGame();
     } finally {
       setFiring(false);
+    }
+  };
+
+  const shotsFired = outgoingShots.length;
+  const hits = outgoingShots.filter((shot) => isHit(shot.result)).length;
+  const accuracy = shotsFired > 0 ? Math.round((hits / shotsFired) * 100) : 0;
+
+  const leaveRoom = async () => {
+    setError("");
+
+    try {
+      const response = await fetch(`/rooms/${encodeURIComponent(roomId)}/leave`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ player_id: playerId }),
+      });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        detail?: string;
+        message?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.detail || data.message || "Could not leave the room.");
+      }
+
+      onExit?.();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not leave the room. Please try again."
+      );
+    }
+  };
+
+  const handleExit = async () => {
+    // After the match ends, this action means explicitly leaving the room.
+    if (!game || finished) {
+      await leaveRoom();
+      return;
+    }
+
+    // During a live match, Exit Battle means forfeit, not leave the room.
+    setError("");
+    setNotice("Forfeiting battle...");
+
+    try {
+      const response = await fetch(`/rooms/${encodeURIComponent(roomId)}/forfeit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ player_id: playerId }),
+      });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        detail?: string;
+        message?: string;
+      };
+
+      if (!response.ok && response.status !== 409) {
+        throw new Error(data.detail || data.message || "Could not forfeit the battle.");
+      }
+
+      setNotice("Battle ended. You remain in the room and may request a rematch or leave.");
+      await loadGame();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not notify the server that you forfeited. Please try again."
+      );
+    }
+  };
+
+  const requestRematch = async () => {
+    if (requestingRematch || !finished) return;
+    setRequestingRematch(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch(`/rooms/${roomId}/rematch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ player_id: playerId }),
+      });
+      const data = (await response.json()) as { detail?: string; message?: string };
+      if (!response.ok) {
+        throw new Error(data.detail || data.message || "Could not request a rematch.");
+      }
+      setNotice(data.message || "Rematch request sent.");
+      await loadGame();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not request a rematch.");
+    } finally {
+      setRequestingRematch(false);
     }
   };
 
@@ -531,9 +642,9 @@ export default function BattleScreen({
             <button
               type="button"
               className="battle-action-button secondary"
-              onClick={onExit}
+              onClick={() => void handleExit()}
             >
-              Exit battle
+              {finished ? "Leave room" : "Exit battle"}
             </button>
           )}
         </div>
@@ -704,26 +815,68 @@ export default function BattleScreen({
             <div className="battle-outcome-divider" />
 
             <h2 id="battle-outcome-title">
-              {iWon ? "VICTORY" : "DEFEAT"}
+              {game.finish_reason === "forfeit"
+                ? iWon
+                  ? "VICTORY — OPPONENT FORFEITED"
+                  : "DEFEAT — YOU FORFEITED"
+                : iWon
+                  ? "VICTORY"
+                  : "DEFEAT"}
             </h2>
 
             <p className="battle-outcome-message">
-              {iWon
-                ? "Enemy fleet eliminated. The seas are yours."
-                : "Your fleet has been eliminated. Mission over."}
+              {game.finish_reason === "forfeit"
+                ? iWon
+                  ? `${game.forfeiter_name ?? opponentName} left the battle. You win!`
+                  : "You forfeited the battle."
+                : iWon
+                  ? "Enemy fleet eliminated. The seas are yours."
+                  : "Your fleet has been eliminated. Mission over."}
             </p>
 
             <span className="battle-outcome-status">
               ENGAGEMENT CONCLUDED
             </span>
 
-            {onExit && (
+            <section className="battle-outcome-stats" aria-label="Match statistics" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px", margin: "20px 0", textAlign: "left" }} >
+              <div><span>Shots fired</span><strong style={{ display: "block" }}>{shotsFired}</strong></div>
+              <div><span>Hits</span><strong style={{ display: "block" }}>{hits}</strong></div>
+              <div><span>Accuracy</span><strong style={{ display: "block" }}>{accuracy}%</strong></div>
+              <div><span>Ships sunk</span><strong style={{ display: "block" }}>{enemySunkShips.length}/5</strong></div>
+            </section>
+
+            {game.opponent_left ? (
+              <p className="battle-outcome-message" role="status">
+                {opponentName} left the room. A rematch is unavailable until another captain joins.
+              </p>
+            ) : game.rematch_requested ? (
+              <p className="battle-outcome-message" role="status">
+                Rematch requested. Waiting for {opponentName}...
+              </p>
+            ) : (
               <button
                 type="button"
                 className="battle-action-button outcome-exit-button"
-                onClick={onExit}
+                onClick={() => void requestRematch()}
+                disabled={requestingRematch || Boolean(game.opponent_left)}
               >
-                Return to command center
+                {requestingRematch ? "SENDING REQUEST..." : "REQUEST REMATCH"}
+              </button>
+            )}
+
+            {game.opponent_rematch_requested && !game.rematch_requested && !game.opponent_left && (
+              <p className="battle-outcome-message" role="status">
+                {opponentName} wants a rematch. Request one to accept.
+              </p>
+            )}
+
+            {onExit && (
+              <button
+                type="button"
+                className="battle-action-button secondary outcome-exit-button"
+                onClick={() => void leaveRoom()}
+              >
+                Leave room
               </button>
             )}
           </div>

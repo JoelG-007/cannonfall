@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-
-function getWebSocketUrl(): string {
-  if (!import.meta.env.DEV && import.meta.env.VITE_WS_URL) {
-    return import.meta.env.VITE_WS_URL;
-  }
-
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${window.location.host}`;
-}
+import { getWebSocketUrl } from "../services/api";
 
 export function useWebSocket(
   roomId: string | null,

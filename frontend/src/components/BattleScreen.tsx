@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { API_URL } from "../services/api";
 
 type Ship = {
   id?: string;
@@ -146,7 +147,7 @@ export default function BattleScreen({
   const loadGame = useCallback(async () => {
     try {
       const response = await fetch(
-        `/rooms/${roomId}/game?player_id=${encodeURIComponent(playerId)}`
+        `${API_URL}/rooms/${roomId}/game?player_id=${encodeURIComponent(playerId)}`
       );
 
       if (!response.ok) {
@@ -181,7 +182,7 @@ export default function BattleScreen({
 
       try {
         const response = await fetch(
-          `/rooms/${roomId}/game?player_id=${encodeURIComponent(playerId)}`
+          `${API_URL}/rooms/${roomId}/game?player_id=${encodeURIComponent(playerId)}`
         );
 
         if (!response.ok) {
@@ -289,7 +290,7 @@ export default function BattleScreen({
     setError("");
 
     try {
-      const response = await fetch(`/rooms/${roomId}/fire`, {
+      const response = await fetch(`${API_URL}/rooms/${roomId}/fire`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -351,7 +352,7 @@ export default function BattleScreen({
     setError("");
 
     try {
-      const response = await fetch(`/rooms/${encodeURIComponent(roomId)}/leave`, {
+      const response = await fetch(`${API_URL}/rooms/${encodeURIComponent(roomId)}/leave`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ player_id: playerId }),
@@ -386,7 +387,7 @@ export default function BattleScreen({
     setNotice("Forfeiting battle...");
 
     try {
-      const response = await fetch(`/rooms/${encodeURIComponent(roomId)}/forfeit`, {
+      const response = await fetch(`${API_URL}/rooms/${encodeURIComponent(roomId)}/forfeit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ player_id: playerId }),
@@ -419,7 +420,7 @@ export default function BattleScreen({
     setNotice("");
 
     try {
-      const response = await fetch(`/rooms/${roomId}/rematch`, {
+      const response = await fetch(`${API_URL}/rooms/${roomId}/rematch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ player_id: playerId }),

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import ShipPlacement from "./components/ShipPlacement";
 import BattleScreen from "./components/BattleScreen";
 import anchorEmblem from "./assets/anchor-emblem.png";
+import { API_URL } from "./services/api";
 
 type Player = {
   id: string;
@@ -81,7 +82,7 @@ function App() {
 
     const checkBackend = async () => {
       try {
-        const response = await fetch("/health", { cache: "no-store" });
+        const response = await fetch(`${API_URL}/health`, { cache: "no-store" });
         if (!cancelled) setBackendConnected(response.ok);
       } catch {
         if (!cancelled) setBackendConnected(false);
@@ -100,7 +101,7 @@ function App() {
   // Retrieve the latest room information.
   const refreshRoom = useCallback(async (id: string) => {
     const response = await fetch(
-      `/rooms/${encodeURIComponent(id)}`,
+      `${API_URL}/rooms/${encodeURIComponent(id)}`,
       { cache: "no-store" }
     );
 
@@ -164,7 +165,7 @@ function App() {
     setError("");
 
     try {
-      const response = await fetch("/rooms", {
+      const response = await fetch(`${API_URL}/rooms`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -220,7 +221,7 @@ function App() {
 
     try {
       const response = await fetch(
-        `/rooms/${encodeURIComponent(id)}/join`,
+        `${API_URL}/rooms/${encodeURIComponent(id)}/join`,
         {
           method: "POST",
           headers: {
@@ -275,7 +276,7 @@ function App() {
 
     try {
       const response = await fetch(
-        `/rooms/${encodeURIComponent(room.id)}/leave`,
+        `${API_URL}/rooms/${encodeURIComponent(room.id)}/leave`,
         {
           method: "POST",
           headers: {
@@ -322,7 +323,7 @@ function App() {
     }
 
     const response = await fetch(
-      `/rooms/${encodeURIComponent(room.id)}/fleet`,
+      `${API_URL}/rooms/${encodeURIComponent(room.id)}/fleet`,
       {
         method: "POST",
         headers: {
